@@ -35,8 +35,25 @@ async function getSheets() {
 
 // ─── MIDDLEWARE ────────────────────────────────────────────
 app.use(cors());
+app.post('/webhook', middleware(lineConfig), async (req, res) => {
+  res.sendStatus(200);
+
+  for (const event of (req.body.events || [])) {
+    try {
+      if (event.type === 'follow') {
+        await handleFollow(event);
+      }
+
+      if (event.type === 'postback') {
+        await handlePostback(event);
+      }
+
+    } catch (err) {
+      console.error('webhook:', err.message);
+    }
+  }
+});
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── HELPERS ───────────────────────────────────────────────
 function genId() {
