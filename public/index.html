@@ -1,1 +1,674 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Hotel Nara — จองห้องพัก</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;--gp:#F4FBF8;
+  --am:#D97706;--aml:#FEF9C3;--rd:#DC2626;--rdl:#FEE2E2;
+  --bg:#F4F4F4;--card:#fff;--text:#1a1a1a;--muted:#888;
+  --border:#E5E7EB;--radius:12px;
+}
+body{font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+button,input,select{font-family:inherit;outline:none;border:none}
+button{cursor:pointer}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+.hdr{background:var(--g);color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.hdr .back{font-size:22px;cursor:pointer;padding:0 4px;margin-left:-4px}
+.hdr h1{font-size:16px;font-weight:600;flex:1}
+.body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.foot{padding:12px 14px;background:var(--card);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.card{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select{border:1.5px solid var(--border);border-radius:8px;padding:10px 13px;font-size:15px;background:#fff;color:var(--text);width:100%;transition:border .2s}
+.field input:focus,.field select:focus{border-color:var(--g)}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qty{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content}
+.qty button{width:38px;height:38px;background:#f5f5f5;font-size:20px;color:var(--text);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.qty button:active{background:#e8e8e8}
+.qty span{width:44px;text-align:center;font-size:16px;font-weight:600}
+.room-list{display:flex;flex-direction:column;gap:10px}
+.room-item{background:var(--card);border-radius:var(--radius);overflow:hidden;border:2px solid transparent;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:border .2s,transform .1s}
+.room-item.sel{border-color:var(--g)}
+.room-item.na{opacity:.45;cursor:not-allowed}
+.room-item:not(.na):active{transform:scale(.99)}
+.room-banner{height:72px;display:flex;align-items:center;justify-content:center;font-size:32px;position:relative}
+.std{background:linear-gradient(135deg,#3a3a3a,#5a5a5a)}
+.pre{background:linear-gradient(135deg,#4a3a6a,#6a5a8a)}
+.sup{background:linear-gradient(135deg,#1a3a5c,#2d5a8a)}
+.dlx{background:linear-gradient(135deg,#1a5c48,#2d8a6c)}
+.room-badge{position:absolute;top:7px;right:7px;color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:8px}
+.badge-ok{background:var(--g)}.badge-low{background:var(--am)}.badge-full{background:var(--rd)}.badge-closed{background:#888}
+.room-body{padding:11px 14px}
+.room-name{font-size:15px;font-weight:700}
+.room-price{color:var(--g);font-weight:700;font-size:14px;margin-top:2px}
+.room-detail{font-size:12px;color:var(--muted);margin-top:3px}
+.bb-opts{display:flex;flex-direction:column;gap:8px}
+.bb-opt{border:2px solid var(--border);border-radius:10px;padding:13px 14px;cursor:pointer;display:flex;gap:11px;align-items:flex-start;transition:border .2s,background .2s}
+.bb-opt.sel{border-color:var(--g);background:var(--gl)}
+.bb-opt .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;transition:border .2s}
+.bb-opt.sel .radio{border-color:var(--g);background:var(--g)}
+.bb-opt.sel .radio::after{content:'';width:6px;height:6px;background:#fff;border-radius:50%}
+.bb-title{font-size:14px;font-weight:600}
+.bb-amount{color:var(--g);font-weight:700;font-size:16px;margin-top:2px}
+.bb-note{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.pay-opts{display:flex;flex-direction:column;gap:8px}
+.pay-opt{border:2px solid var(--border);border-radius:10px;padding:13px 14px;cursor:pointer;display:flex;gap:11px;align-items:flex-start;transition:border .2s,background .2s}
+.pay-opt.sel{border-color:var(--g);background:var(--gl)}
+.pay-opt .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center}
+.pay-opt.sel .radio{border-color:var(--g);background:var(--g)}
+.pay-opt.sel .radio::after{content:'';width:6px;height:6px;background:#fff;border-radius:50%}
+.po-title{font-size:14px;font-weight:600}
+.po-amount{color:var(--g);font-weight:700;font-size:18px;margin-top:2px}
+.po-note{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.sum-table{display:flex;flex-direction:column}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.sum-row:last-child{border:none}
+.sum-row .lbl{color:var(--muted);font-size:13px}
+.sum-row .val{font-weight:600;font-size:13px}
+.sum-total{font-size:17px!important;color:var(--g)!important}
+.policy{background:var(--aml);border:1px solid #FCD34D;border-radius:10px;padding:12px 14px}
+.policy h4{font-size:12px;font-weight:700;color:#92400E;margin-bottom:7px}
+.policy ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+.policy li{font-size:12px;color:#78350F;line-height:1.5;padding-left:14px;position:relative}
+.policy li::before{content:'•';position:absolute;left:3px;color:var(--am)}
+.alert{border-radius:10px;padding:11px 13px;font-size:13px;line-height:1.5}
+.alert-w{background:var(--aml);color:#78350F;border:1px solid #FCD34D}
+.alert-d{background:var(--rdl);color:#991B1B;border:1px solid #FCA5A5}
+.alert-s{background:var(--gl);color:var(--gd);border:1px solid #86EFAC}
+.btn{border-radius:10px;padding:13px;font-size:15px;font-weight:600;width:100%;text-align:center;transition:opacity .2s,transform .1s}
+.btn:active:not(:disabled){opacity:.85;transform:scale(.99)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--g);color:#fff}
+.btn-secondary{background:#fff;color:var(--g);border:2px solid var(--g)}
+.btn-danger{background:var(--rd);color:#fff}
+.btn-gray{background:#e5e7eb;color:#374151}
+.bk-item{background:var(--card);border-radius:var(--radius);padding:13px 15px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;border-left:4px solid var(--border);transition:transform .15s}
+.bk-item.confirmed{border-left-color:var(--g)}
+.bk-item.pending_payment{border-left-color:var(--am)}
+.bk-item.cancelled,.bk-item.rejected{border-left-color:var(--rd)}
+.bk-item:active{transform:scale(.99)}
+.bk-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.bk-id{font-size:11px;font-weight:700;color:var(--muted)}
+.status-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px}
+.confirmed .status-badge{background:#DCFCE7;color:#166534}
+.pending_payment .status-badge{background:var(--aml);color:#854D0E}
+.cancelled .status-badge,.rejected .status-badge{background:var(--rdl);color:#991B1B}
+.bk-room{font-size:15px;font-weight:700}
+.bk-date{font-size:12px;color:var(--muted);margin-top:2px}
+.act-card{border:1.5px solid var(--border);border-radius:10px;padding:13px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:border .2s}
+.act-card:hover{border-color:var(--g)}
+.act-card.danger .act-title{color:var(--rd)}
+.act-card.danger{border-color:#FECACA}
+.act-icon{font-size:22px;width:38px;text-align:center}
+.act-title{font-weight:600;font-size:14px}
+.act-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.success-icon{font-size:60px;text-align:center;margin:20px 0 8px}
+.success-title{text-align:center;font-size:22px;font-weight:700;color:var(--gd)}
+.success-sub{text-align:center;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:var(--muted);font-size:13px}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px 18px;color:var(--muted)}
+.empty .ei{font-size:44px;margin-bottom:10px}
+#toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:22px 18px;width:100%;max-width:480px}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:7px}
+.modal p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.modal-btns{display:flex;gap:8px}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <h3 id="mTitle">ยืนยัน</h3>
+    <p id="mBody">คุณต้องการดำเนินการนี้?</p>
+    <div class="modal-btns">
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-danger" id="mConfirmBtn" style="flex:1">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<!-- S-HOME -->
+<div class="screen active" id="s-home">
+  <div class="hdr"><h1>🏨 Hotel Nara</h1></div>
+  <div class="body">
+    <div class="card">
+      <div class="card-title">วันที่เข้า-ออก</div>
+      <div class="row-2">
+        <div class="field"><label>เช็คอิน</label><input type="date" id="checkin" onchange="onDateChange()"/></div>
+        <div class="field"><label>เช็คเอาต์</label><input type="date" id="checkout" onchange="onDateChange()"/></div>
+      </div>
+      <div id="nights-hint" style="font-size:12px;color:var(--g);margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">จำนวนห้องพัก</div>
+      <div class="field">
+        <label>🛏 จำนวนห้อง <span style="color:var(--rd);font-size:11px">(สูงสุด 5 ห้อง)</span></label>
+        <div class="qty">
+          <button onclick="adj('rooms',-1)">−</button>
+          <span id="rooms-val">1</span>
+          <button onclick="adj('rooms',1)">+</button>
+        </div>
+      </div>
+      <div class="alert alert-w" style="margin-top:10px;font-size:12px">
+        ⚠️ จองผ่าน Line OA ได้สูงสุด <strong>5 ห้อง/ครั้ง</strong> — หากต้องการมากกว่าโปรดติดต่อฝ่ายขาย
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" onclick="searchRooms()">ค้นหาห้องว่าง →</button>
+    <button class="btn btn-secondary" onclick="goManage()">📋 การจองของฉัน</button>
+  </div>
+</div>
+
+<!-- S-ROOMS -->
+<div class="screen" id="s-rooms">
+  <div class="hdr"><span class="back" onclick="goScreen('s-home')">‹</span><h1>เลือกห้องพัก</h1></div>
+  <div class="body">
+    <div class="alert alert-s" id="room-bar">กำลังโหลด...</div>
+    <div id="room-list"><div class="loading"><div class="spinner"></div>เช็คห้องว่าง...</div></div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" id="btn-select" onclick="goToBB()" disabled>เลือกห้องนี้ →</button>
+  </div>
+</div>
+
+<!-- S-BB -->
+<div class="screen" id="s-bb">
+  <div class="hdr"><span class="back" onclick="goScreen('s-rooms')">‹</span><h1>ตัวเลือกอาหารเช้า</h1></div>
+  <div class="body">
+    <div class="card">
+      <div class="card-title">🍳 เพิ่มอาหารเช้า (2 ท่าน / ห้อง)</div>
+      <div class="bb-opts">
+        <div class="bb-opt sel" id="bb-ro" onclick="selectBB('RO')">
+          <div class="radio"></div>
+          <div>
+            <div class="bb-title">ไม่รวมอาหารเช้า (Room Only)</div>
+            <div class="bb-amount">+฿0</div>
+            <div class="bb-note">สามารถซื้อเพิ่มได้ที่โรงแรม ราคา ฿150/ท่าน</div>
+          </div>
+        </div>
+        <div class="bb-opt" id="bb-bb" onclick="selectBB('BB')">
+          <div class="radio"></div>
+          <div>
+            <div class="bb-title">รวมอาหารเช้า 2 ท่าน (BB)</div>
+            <div class="bb-amount">+฿250/ห้อง/คืน</div>
+            <div class="bb-note">บุฟเฟ่ต์อาหารเช้า รวม 2 ท่านในราคาเดียว</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">สรุปก่อนกรอกข้อมูล</div>
+      <div class="sum-table" id="bb-summary"></div>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" onclick="goToGuest()">ถัดไป — กรอกข้อมูล →</button>
+  </div>
+</div>
+
+<!-- S-GUEST -->
+<div class="screen" id="s-guest">
+  <div class="hdr"><span class="back" onclick="goScreen('s-bb')">‹</span><h1>ข้อมูลผู้เข้าพัก</h1></div>
+  <div class="body">
+    <div class="card">
+      <div class="card-title">ข้อมูลผู้เข้าพักหลัก</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>ชื่อ-นามสกุล</label>
+        <input type="text" id="guestName" placeholder="เช่น สมชาย ใจดี"/>
+      </div>
+      <div class="field">
+        <label>เบอร์โทรศัพท์</label>
+        <input type="tel" id="guestPhone" placeholder="0XX-XXX-XXXX"/>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">สรุปการจอง</div>
+      <div class="sum-table" id="guest-summary"></div>
+    </div>
+    <div class="policy">
+      <h4>⚠️ เงื่อนไขการจอง</h4>
+      <ul>
+        <li>สำรองห้องหลังได้รับ <strong>มัดจำ 50%</strong> หรือชำระเต็มจำนวน</li>
+        <li>ยอดที่เหลือชำระวันเข้าพัก — เงินสด / โอน / บัตรเครดิต</li>
+        <li>เปลี่ยนวันได้ <strong>1 ครั้ง</strong> ไม่มีค่าใช้จ่าย แจ้งล่วงหน้า 3–5 วัน</li>
+        <li>ยกเลิก / ไม่เข้าพัก — <strong>ไม่คืนเงินมัดจำทุกกรณี</strong></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" onclick="goToPayment()">ถัดไป — เลือกวิธีชำระ →</button>
+  </div>
+</div>
+
+<!-- S-PAYMENT -->
+<div class="screen" id="s-payment">
+  <div class="hdr"><span class="back" onclick="goScreen('s-guest')">‹</span><h1>ชำระเงิน</h1></div>
+  <div class="body">
+    <div class="card">
+      <div class="card-title">เลือกวิธีชำระเงิน</div>
+      <div class="pay-opts">
+        <div class="pay-opt sel" id="pay-dep" onclick="selectPay('deposit')">
+          <div class="radio"></div>
+          <div>
+            <div class="po-title">💰 ชำระมัดจำ 50%</div>
+            <div class="po-amount" id="dep-amt">฿0</div>
+            <div class="po-note">ส่วนที่เหลือชำระวันเข้าพัก (เงินสด/โอน/บัตร)</div>
+          </div>
+        </div>
+        <div class="pay-opt" id="pay-full" onclick="selectPay('full')">
+          <div class="radio"></div>
+          <div>
+            <div class="po-title">✅ ชำระเต็มจำนวน</div>
+            <div class="po-amount" id="full-amt">฿0</div>
+            <div class="po-note">ไม่ต้องชำระเพิ่มวันเข้าพัก</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">สรุปยอดชำระ</div>
+      <div class="sum-table" id="pay-summary"></div>
+    </div>
+    <div class="alert alert-w" style="font-size:12px">
+      📱 QR PromptPay จะส่งใน Line Chat หลังยืนยัน | กรุณาชำระและแนบสลิปภายใน <strong>15 นาที</strong>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" id="btn-submit" onclick="submitBooking()">ยืนยันและรับ QR PromptPay →</button>
+  </div>
+</div>
+
+<!-- S-SUCCESS -->
+<div class="screen" id="s-success">
+  <div class="hdr"><h1>Hotel Nara</h1></div>
+  <div class="body" style="align-items:center">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">จองสำเร็จแล้ว!</div>
+    <div class="success-sub" id="success-msg">ระบบส่ง QR PromptPay ไปใน Line แล้ว<br>กรุณาชำระและแนบสลิปภายใน 15 นาที</div>
+    <div class="card" style="width:100%;margin-top:10px">
+      <div class="sum-table" id="success-detail"></div>
+    </div>
+    <div class="alert alert-w" style="width:100%;font-size:12px">
+      ⚠️ การจองยืนยันสมบูรณ์หลังทีมงานตรวจสอบสลิป (15–30 นาที)
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-secondary" onclick="goManage()">📋 ดูการจองของฉัน</button>
+    <button class="btn btn-gray" onclick="goScreen('s-home')">จองใหม่</button>
+  </div>
+</div>
+
+<!-- S-MY -->
+<div class="screen" id="s-my">
+  <div class="hdr"><span class="back" onclick="goScreen('s-home')">‹</span><h1>การจองของฉัน</h1></div>
+  <div class="body">
+    <div id="my-list"><div class="loading"><div class="spinner"></div>กำลังโหลด...</div></div>
+  </div>
+</div>
+
+<!-- S-MANAGE -->
+<div class="screen" id="s-manage">
+  <div class="hdr"><span class="back" onclick="goScreen('s-my')">‹</span><h1>จัดการการจอง</h1></div>
+  <div class="body">
+    <div id="manage-detail" class="card"></div>
+    <div id="manage-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+  </div>
+</div>
+
+<!-- S-CHANGE-DATE -->
+<div class="screen" id="s-change">
+  <div class="hdr"><span class="back" onclick="goScreen('s-manage')">‹</span><h1>เปลี่ยนวันเข้าพัก</h1></div>
+  <div class="body">
+    <div class="alert alert-w">📌 เปลี่ยนได้ <strong>1 ครั้ง</strong> | แจ้งล่วงหน้า <strong>3 วัน</strong> ขึ้นไป</div>
+    <div class="card">
+      <div class="card-title">วันเดิม</div>
+      <div id="old-dates" style="font-size:14px;font-weight:600;color:var(--rd)"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">วันใหม่ที่ต้องการ</div>
+      <div class="row-2">
+        <div class="field"><label>เช็คอินใหม่</label><input type="date" id="new-ci"/></div>
+        <div class="field"><label>เช็คเอาต์ใหม่</label><input type="date" id="new-co"/></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-primary" onclick="submitDateChange()">ยืนยันเปลี่ยนวัน</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────
+const S = {
+  liffId: '2010076960-Z9bcVLCW',   // ← LIFF ID ของ Hotel Nara (ตั้งค่าแล้ว)
+  userId: null, displayName: '',
+  rooms: 1, bbOpt: 'RO', bbPrice: 250, payType: 'deposit',
+  selRoom: null, allRooms: [], curBooking: null,
+};
+const API = ''; // same origin — ไม่ต้องเปลี่ยน
+
+// ── INIT ─────────────────────────────────────────────────────
+async function init() {
+  try {
+    await liff.init({ liffId: S.liffId });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const p = await liff.getProfile();
+    S.userId = p.userId; S.displayName = p.displayName;
+    const tom = new Date(); tom.setDate(tom.getDate()+1);
+    const dat = new Date(); dat.setDate(dat.getDate()+2);
+    document.getElementById('checkin').value  = fmt(tom);
+    document.getElementById('checkout').value = fmt(dat);
+    document.getElementById('checkin').min = fmt(tom);
+    onDateChange();
+  } catch(e) {
+    toast('เกิดข้อผิดพลาด: '+e.message+'\nกรุณาเปิดผ่าน Line OA');
+  }
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function fmt(d){ return d.toISOString().split('T')[0]; }
+function nights(ci,co){ return Math.round((new Date(co)-new Date(ci))/86400000); }
+function thDate(s){
+  const d=new Date(s);
+  const m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+function sRow(l,v,c='var(--text)'){
+  return `<div class="sum-row"><span class="lbl">${l}</span><span class="val" style="color:${c}">${v}</span></div>`;
+}
+function statusLabel(s){
+  return {confirmed:'✅ ยืนยันแล้ว',pending_payment:'⏳ รอชำระ',cancelled:'❌ ยกเลิก',rejected:'⛔ ปฏิเสธ'}[s]||s;
+}
+function calcTotal(){
+  const ci=document.getElementById('checkin').value;
+  const co=document.getElementById('checkout').value;
+  const n=nights(ci,co);
+  const room=(S.selRoom?.baseRate||0)*S.rooms*n;
+  const bb=S.bbOpt==='BB'?S.bbPrice*S.rooms*n:0;
+  return {room,bb,total:room+bb,n};
+}
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+function openModal(title,body,onOk){
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mBody').textContent=body;
+  document.getElementById('mConfirmBtn').onclick=onOk;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('confirmModal').classList.remove('open'); }
+function goScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── DATE / QTY ────────────────────────────────────────────────
+function onDateChange(){
+  const ci=document.getElementById('checkin').value;
+  let co=document.getElementById('checkout').value;
+  document.getElementById('checkout').min=ci;
+  if(co<=ci){ const d=new Date(ci); d.setDate(d.getDate()+1); co=fmt(d); document.getElementById('checkout').value=co; }
+  const n=nights(ci,co);
+  document.getElementById('nights-hint').textContent=n>0?`จำนวน ${n} คืน`:'';
+}
+function adj(k,d){
+  S.rooms=Math.min(5,Math.max(1,S.rooms+d));
+  document.getElementById('rooms-val').textContent=S.rooms;
+}
+
+// ── SEARCH ROOMS ──────────────────────────────────────────────
+async function searchRooms(){
+  const ci=document.getElementById('checkin').value;
+  const co=document.getElementById('checkout').value;
+  if(!ci||!co||ci>=co){ toast('กรุณาเลือกวันที่ให้ถูกต้อง'); return; }
+  goScreen('s-rooms');
+  const n=nights(ci,co);
+  document.getElementById('room-bar').textContent=`📅 ${thDate(ci)} – ${thDate(co)} | ${n} คืน | ${S.rooms} ห้อง`;
+  document.getElementById('room-list').innerHTML='<div class="loading"><div class="spinner"></div>เช็คห้องว่าง...</div>';
+  try {
+    const res=await fetch(`${API}/api/rooms?checkin=${ci}`);
+    const data=await res.json();
+    S.allRooms=data.rooms||[];
+    S.bbPrice=data.bbPrice||250;
+    renderRooms(S.allRooms,n);
+  } catch(e){
+    document.getElementById('room-list').innerHTML='<div class="alert alert-d">ไม่สามารถโหลดข้อมูลได้</div>';
+  }
+}
+const banners={STD:'std',PRE:'pre',SUP:'sup',DLX:'dlx'};
+const emojis={STD:'🛏',PRE:'✨',SUP:'🏙️',DLX:'🌟'};
+function renderRooms(rooms,n){
+  if(!rooms.length){ document.getElementById('room-list').innerHTML='<div class="empty"><div class="ei">😔</div>ไม่พบห้องว่าง</div>'; return; }
+  document.getElementById('room-list').innerHTML='<div class="room-list">'+rooms.map(r=>{
+    const key=r.code.split('-')[0];
+    const bc=banners[key]||'std'; const em=emojis[key]||'🛏';
+    const na=!r.canBook;
+    const badgeCls=r.status==='OPEN'?'badge-ok':r.status==='LOW'?'badge-low':r.status==='CLOSED'?'badge-closed':'badge-full';
+    const badgeTxt=r.status==='OPEN'?`ว่าง ${r.openToday} ห้อง`:r.status==='LOW'?`เหลือ ${r.openToday} ห้อง`:r.status==='CLOSED'?'ปิดวันนี้':'เต็ม';
+    const total=(r.baseRate*S.rooms*n).toLocaleString();
+    return `<div class="room-item${na?' na':''}" id="ri-${r.code}" onclick="${na?'':``selectRoom('${r.code}')``}">
+      <div class="room-banner ${bc}"><span>${em}</span><span class="room-badge ${badgeCls}">${badgeTxt}</span></div>
+      <div class="room-body">
+        <div class="room-name">${r.name}</div>
+        <div class="room-price">฿${r.baseRate.toLocaleString()} / คืน</div>
+        <div class="room-detail">${S.rooms} ห้อง × ${n} คืน = ฿${total}</div>
+        ${na?`<div class="alert alert-d" style="margin-top:8px;font-size:11px">ไม่สามารถจองได้ในขณะนี้</div>`:''}
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+function selectRoom(code){
+  S.selRoom=S.allRooms.find(r=>r.code===code);
+  document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('sel'));
+  document.getElementById(`ri-${code}`)?.classList.add('sel');
+  const btn=document.getElementById('btn-select');
+  btn.disabled=false; btn.textContent=`เลือก ${S.selRoom.name} →`;
+}
+
+// ── BREAKFAST ────────────────────────────────────────────────
+function goToBB(){
+  if(!S.selRoom){ toast('กรุณาเลือกห้องพัก'); return; }
+  selectBB('RO'); updateBBSummary(); goScreen('s-bb');
+}
+function selectBB(opt){
+  S.bbOpt=opt;
+  document.getElementById('bb-ro').classList.toggle('sel',opt==='RO');
+  document.getElementById('bb-bb').classList.toggle('sel',opt==='BB');
+  updateBBSummary();
+}
+function updateBBSummary(){
+  const ci=document.getElementById('checkin').value;
+  const co=document.getElementById('checkout').value;
+  const {room,bb,total,n}=calcTotal();
+  document.getElementById('bb-summary').innerHTML=
+    sRow('ห้องพัก',S.selRoom.name)+
+    sRow('ตัวเลือก',S.bbOpt==='BB'?'รวมอาหารเช้า 2 ท่าน':'ไม่รวมอาหารเช้า')+
+    sRow('วันที่',`${thDate(ci)} – ${thDate(co)} (${n} คืน)`)+
+    sRow('ค่าห้อง','฿'+room.toLocaleString())+
+    (bb>0?sRow(`ค่าอาหาร ${S.rooms} ห้อง×${n} คืน`,'฿'+bb.toLocaleString()):'')+
+    `<div class="sum-row"><span class="lbl">รวมทั้งหมด</span><span class="val sum-total">฿${total.toLocaleString()}</span></div>`;
+}
+
+// ── GUEST INFO ────────────────────────────────────────────────
+function goToGuest(){
+  updateBBSummary();
+  document.getElementById('guest-summary').innerHTML=document.getElementById('bb-summary').innerHTML;
+  document.getElementById('guestName').value=S.displayName||'';
+  goScreen('s-guest');
+}
+
+// ── PAYMENT ───────────────────────────────────────────────────
+function goToPayment(){
+  const name=document.getElementById('guestName').value.trim();
+  if(!name){ toast('กรุณากรอกชื่อผู้เข้าพัก'); return; }
+  const {total}=calcTotal();
+  const dep=Math.round(total*0.5);
+  document.getElementById('dep-amt').textContent='฿'+dep.toLocaleString();
+  document.getElementById('full-amt').textContent='฿'+total.toLocaleString();
+  renderPaySummary();
+  goScreen('s-payment');
+}
+function selectPay(t){
+  S.payType=t;
+  document.getElementById('pay-dep').classList.toggle('sel',t==='deposit');
+  document.getElementById('pay-full').classList.toggle('sel',t==='full');
+  renderPaySummary();
+}
+function renderPaySummary(){
+  const {room,bb,total}=calcTotal();
+  const dep=Math.round(total*0.5);
+  const pay=S.payType==='full'?total:dep;
+  const rem=total-pay;
+  document.getElementById('pay-summary').innerHTML=
+    sRow('ค่าห้อง','฿'+room.toLocaleString())+
+    (bb>0?sRow('ค่าอาหารเช้า','฿'+bb.toLocaleString()):'')+
+    sRow('รวมทั้งหมด','฿'+total.toLocaleString())+
+    sRow(S.payType==='full'?'ชำระเต็มจำนวน':'มัดจำ 50%','฿'+pay.toLocaleString(),'var(--g)')+
+    (rem>0?sRow('ค้างชำระ (วันเข้าพัก)','฿'+rem.toLocaleString(),'var(--am)'):'');
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────
+async function submitBooking(){
+  const name=document.getElementById('guestName').value.trim();
+  const phone=document.getElementById('guestPhone').value.trim();
+  const ci=document.getElementById('checkin').value;
+  const co=document.getElementById('checkout').value;
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true; btn.textContent='กำลังสร้างการจอง...';
+  try {
+    const res=await fetch(`${API}/api/bookings`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        lineUserId: S.userId,
+        guestName: name+(phone?` (${phone})`:''),
+        roomCode: S.selRoom.code,
+        checkin:ci, checkout:co,
+        numRooms:S.rooms,
+        breakfastOption:S.bbOpt,
+        paymentType:S.payType,
+      }),
+    });
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error);
+    const {total,bb,n}=calcTotal();
+    const pay=S.payType==='full'?data.total:data.payAmount;
+    document.getElementById('success-msg').textContent=
+      `ระบบส่ง QR PromptPay ไปใน Line ของคุณแล้ว\nกรุณาชำระ ฿${pay.toLocaleString()} และแนบสลิปภายใน 15 นาที`;
+    document.getElementById('success-detail').innerHTML=
+      sRow('เลขจอง',data.bookingId)+
+      sRow('ห้องพัก',S.selRoom.name)+
+      sRow('อาหารเช้า',S.bbOpt==='BB'?'รวมอาหารเช้า 2 ท่าน':'ไม่รวม')+
+      sRow('วันที่',`${thDate(ci)} – ${thDate(co)}`)+
+      sRow('ยอดชำระ','฿'+pay.toLocaleString(),'var(--g)');
+    goScreen('s-success');
+  } catch(e){
+    toast('❌ '+e.message);
+    btn.disabled=false; btn.textContent='ยืนยันและรับ QR PromptPay →';
+  }
+}
+
+// ── MY BOOKINGS ───────────────────────────────────────────────
+async function goManage(){
+  goScreen('s-my');
+  document.getElementById('my-list').innerHTML='<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+  try {
+    const res=await fetch(`${API}/api/bookings/user/${S.userId}`);
+    const data=await res.json();
+    const bks=data.bookings||[];
+    if(!bks.length){ document.getElementById('my-list').innerHTML='<div class="empty"><div class="ei">🛏️</div>ยังไม่มีรายการจอง</div>'; return; }
+    document.getElementById('my-list').innerHTML=bks.map(b=>`
+      <div class="bk-item ${b.status}" onclick="openManage('${b.bookingId}')">
+        <div class="bk-head"><span class="bk-id">#${b.bookingId}</span><span class="status-badge">${statusLabel(b.status)}</span></div>
+        <div class="bk-room">${b.roomName||b.roomCode} | ${b.bbOption==='BB'?'🍳 BB':'RO'}</div>
+        <div class="bk-date">📅 ${thDate(b.checkin)} – ${thDate(b.checkout)}</div>
+        <div class="bk-date">฿${b.total.toLocaleString()} | มัดจำ ฿${b.depositPaid.toLocaleString()}</div>
+      </div>`).join('');
+  } catch(e){ document.getElementById('my-list').innerHTML='<div class="alert alert-d">ไม่สามารถโหลดข้อมูลได้</div>'; }
+}
+async function openManage(id){
+  goScreen('s-manage');
+  try {
+    const res=await fetch(`${API}/api/bookings/user/${S.userId}`);
+    const data=await res.json();
+    const b=data.bookings.find(x=>x.bookingId===id);
+    if(!b) return;
+    S.curBooking=b;
+    const dLeft=Math.floor((new Date(b.checkin)-new Date())/86400000);
+    document.getElementById('manage-detail').innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div><div style="font-size:17px;font-weight:700">${b.roomName||b.roomCode}</div><div style="font-size:11px;color:var(--muted)">#${b.bookingId}</div></div>
+        <span class="status-badge ${b.status}">${statusLabel(b.status)}</span>
+      </div>
+      <div class="sum-table">
+        ${sRow('อาหารเช้า',b.bbOption==='BB'?'รวมอาหารเช้า 2 ท่าน':'ไม่รวมอาหารเช้า')}
+        ${sRow('เช็คอิน',thDate(b.checkin)+' | 14:00 น.')}
+        ${sRow('เช็คเอาต์',thDate(b.checkout)+' | 12:00 น.')}
+        ${sRow('ราคารวม','฿'+b.total.toLocaleString())}
+        ${sRow('มัดจำ','฿'+b.depositPaid.toLocaleString(),'var(--g)')}
+        ${b.remaining>0?sRow('ค้างชำระ','฿'+b.remaining.toLocaleString()+' (วันเข้าพัก)','var(--am)'):''}
+      </div>`;
+    const acts=document.getElementById('manage-actions');
+    acts.innerHTML='';
+    if(b.status==='confirmed'){
+      if(b.modifyCount<1&&dLeft>=3){
+        acts.innerHTML+=`<div class="act-card" onclick="goChangeDates()">
+          <span class="act-icon">📅</span>
+          <div><div class="act-title">เปลี่ยนวันเข้าพัก</div><div class="act-sub">ใช้สิทธิ์ได้ 1 ครั้ง | แจ้งล่วงหน้า 3–5 วัน</div></div>
+        </div>`;
+      } else if(b.modifyCount>=1){
+        acts.innerHTML+=`<div class="alert alert-w">ใช้สิทธิ์เปลี่ยนวันครบ 1 ครั้งแล้ว</div>`;
+      } else {
+        acts.innerHTML+=`<div class="alert alert-d">⛔ เหลือ ${dLeft} วัน — ไม่สามารถเปลี่ยนวันได้</div>`;
+      }
+      acts.innerHTML+=`<div class="act-card danger" onclick="confirmCancel()">
+        <span class="act-icon">❌</span>
+        <div><div class="act-title">ยกเลิกการจอง</div><div class="act-sub">ไม่คืนเงินมัดจำทุกกรณี</div></div>
+      </div>`;
+    } else if(b.status==='pending_payment'){
+      acts.innerHTML+=`<div class="alert alert-w">⏳ รอทีมงานตรวจสอบสลิป (15–30 นาที)</div>`;
+    }
+  } catch(e){ toast('ไม่สามารถโหลดข้อมูลได้'); }
+}
+function goChangeDates(){
+  const b=S.curBooking;
+  document.getElementById('old-dates').textContent=`${thDate(b.checkin)} – ${thDate(b.checkout)}`;
+  document.getElementById('new-ci').value=b.checkin;
+  document.getElementById('new-co').value=b.checkout;
+  goScreen('s-change');
+}
+async function submitDateChange(){
+  const newCi=document.getElementById('new-ci').value;
+  const newCo=document.getElementById('new-co').value;
+  if(!newCi||!newCo||newCi>=newCo){ toast('กรุณาเลือกวันที่ให้ถูกต้อง'); return; }
+  toast('ส่งคำขอเปลี่ยนวันแล้ว — ทีมงานจะยืนยันใน Line');
+  goManage();
+}
+function confirmCancel(){
+  openModal('⚠️ ยืนยันการยกเลิก',
+    'ทางโรงแรมขอสงวนสิทธิ์ไม่คืนเงินมัดจำทุกกรณี ต้องการยกเลิกการจองนี้หรือไม่?',
+    async()=>{ toast('ยกเลิกการจองแล้ว'); closeModal(); goManage(); });
+}
+
+init();
+</script>
+</body>
+</html>
 
